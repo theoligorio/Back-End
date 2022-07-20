@@ -6,6 +6,7 @@ require('dotenv').config();
 const User = require('./models/User');
 const sendMail = require('./providers/mailProvider')
 const { promisify } = require('util');
+const { userCreateMailTemplate } = require('./template/userCreateMail')
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}))
@@ -59,37 +60,21 @@ app.post("/user", async (req, res) => {
 
     var dados = req.body;
     dados.password = await bcrypt.hash(dados.password, 8);
-    let email = dados.email;
-    let name = dados.name;
-    let gender = dados.gender;
 
     await User.create(dados)
     .then( ()=>{
         /* enviar e-mail */
         let to = email;
         let cc = '';
-        var htmlbody = "";
-        htmlbody += '<div style="background-color:#000; margin-bottom:150px;">';
-        htmlbody += '<div style="margin-top:150px;">';
-        htmlbody += '<p style="color:#fff; font-weight:bold;margin-top:50px;">';
-        htmlbody += 'Olá {name},';
-        htmlbody += '</p>';
-        htmlbody += '<p style="color:#fff; font-style:italic;margin-top:50px;">';
-        htmlbody += 'Sua conta foi criada com sucesso!';
-        htmlbody += '</p>';
-        htmlbody += '<p style="color:#fff;margin-top:50px;">';
-        htmlbody += 'Seu login é o seu email: {email}';
-        htmlbody += '</p>';
-        htmlbody += '<p style="color:#fff;margin-top:50px;">';
-        htmlbody += 'Sexo: {gender}';
-        htmlbody += '</p>';
-        htmlbody += '</div>';
-        htmlbody += '</div>';
-        htmlbody = htmlbody.replace('{name}', name);
-        htmlbody = htmlbody.replace('{email}', email);
-        htmlbody = htmlbody.replace('{gender}', gender);
+        let subject = 'Sua conta foi criada com sucesso!';
+        let mailBody = userCreateMailTemplate({
+            name: dados.name,
+            email: dados.email,
+            gender: dados.gender
+        })
+
         /* ************* */
-        sendMail(to, cc, 'Sua conta foi criada com sucesso!', htmlbody);
+        sendMail(to, cc, subject, mailBody);
 
         return res.json({
             erro: false,
